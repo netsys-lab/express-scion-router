@@ -1,0 +1,90 @@
+isd_as: "1-ff00:0:1"
+dispatcher_port: 30041
+control_services:
+    "cs1":
+        vlan: { tag: 0, tagged: false }
+        mac: "02:00:00:00:00:ff"
+        ip_ip6: false
+        ip: "10.2.0.1"
+        port: 31010
+border_routers:
+    "br1-ff00_0_1-1":
+        ext_intf:
+            1:
+                ifid: 1
+                IA : "1-ff00:0:2"
+                link_to: "CHILD"
+                local:
+                    physical: { name: "veth1" }
+                    vlan: { tag: 0, tagged: false }
+                    mac: "02:00:00:00:00:01"
+                    is_ip6: false
+                    ip: "10.1.1.2"
+                    port: 50000
+                remote:
+                    vlan: { tag: 0, tagged: false }
+                    mac: "02:00:00:00:00:00"
+                    is_ip6: false
+                    ip: "10.1.1.1"
+                    port: 50000
+                ip_routing: "static"
+            2:
+                ifid: 2
+                IA: "1-ff00:0:2"
+                link_to: "CHILD"
+                local:
+                    physical: { name: "veth3" }
+                    vlan: { tag: 0, tagged: false }
+                    mac: "02:00:00:00:00:03"
+                    is_ip6: false
+                    ip: "10.1.2.2"
+                    port: 50000
+                remote:
+                    vlan: { tag: 0, tagged: false }
+                    mac: "02:00:00:00:00:02"
+                    is_ip6: false
+                    ip: "10.1.2.1"
+                    port: 50000
+                ip_routing: "static"
+        int_intf:
+            1:
+                local:
+                    physical: { name: "veth5" }
+                    vlan: { tag: 0, tagged: false }
+                    mac: "02:00:00:00:00:05"
+                    is_ip6: false
+                    ip: "10.2.0.1"
+                    port: 31002
+                ip_routing: "static"
+                static:
+                    - prefix: "10.2.0.0/32"
+                      is_ipv6: false
+                      next_hop: 1
+            2:
+                local:
+                    physical: { name: "veth7" }
+                    vlan: { tag: 0, tagged: false }
+                    mac: "02:00:00:00:00:07"
+                    is_ip6: false
+                    ip: "10.2.0.3"
+                    port: 31002
+                ip_routing: "static"
+                static:
+                    - prefix: "10.2.0.2/32"
+                      is_ipv6: false
+                      next_hop: 2
+        next_hops:
+            - ip: "10.2.0.0"
+              is_ipv6: false
+              mac: "02:00:00:00:00:04"
+            - ip: "10.2.0.2"
+              is_ipv6: false
+              mac: "02:00:00:00:00:06"
+    "br1-ff00_0_1-2":
+        ext_intf:
+        int_intf:
+        next_hops:
+    "br1-ff00_0_1-3":
+        ext_intf:
+        int_intf:
+        next_hops:
