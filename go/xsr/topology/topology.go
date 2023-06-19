@@ -7,10 +7,11 @@ import (
 )
 
 type Topology struct {
-	IA              string                   `yaml:"isd_as"`
-	DispatcherPort  int                      `yaml:"dispatcher_port"`
-	ControlServices map[string]*Address      `yaml:"control_services"`
-	BorderRouters   map[string]*BorderRouter `yaml:"border_routers"`
+	IA               string                   `yaml:"isd_as"`
+	DispatcherPort   int                      `yaml:"dispatcher_port"`
+	DiscoveryService Address                  `yaml:"discovery_service"`
+	ControlService   Address                  `yaml:"control_service"`
+	BorderRouters    map[string]*BorderRouter `yaml:"border_routers"`
 }
 
 type BorderRouter struct {
@@ -30,6 +31,7 @@ type ExtInterface struct {
 	IPRouting string      `yaml:"ip_routing"` // static or kernel
 	// Every extern interface has its own FIB
 	StaticRoutes []Route `yaml:"static"`
+	Bfd          BFD     `yaml:"bfd,omitempty"`
 }
 
 // Intra-AS interface
@@ -38,6 +40,7 @@ type IntInterface struct {
 	IPRouting string      `yaml:"ip_routing"` // static or kernel
 	// Static routes are shared between all internal interfaces
 	StaticRoutes []Route `yaml:"static"`
+	Bfd          BFD     `yaml:"bfd,omitempty"`
 }
 
 // A logical port of the border router. A physical port can have many logical
@@ -78,12 +81,18 @@ type NextHop struct {
 	IP    string `yaml:"ip"`
 }
 
+// SCION service address
 type Address struct {
 	VLAN  VLAN   `yaml:"vlan"`
 	MAC   string `yaml:"mac"`
 	IsIP6 bool   `yaml:"is_ip6"`
 	IP    string `yaml:"ip"`
 	Port  int    `yaml:"port"`
+}
+
+// BFD configuration
+type BFD struct {
+	Disable bool `yaml:"disable,omitempty"`
 }
 
 func LoadTopology(path string) (*Topology, error) {

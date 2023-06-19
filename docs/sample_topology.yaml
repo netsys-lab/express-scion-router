@@ -1,18 +1,21 @@
 isd_as: "1-ff00:0:1"
 dispatcher_port: 30041
-control_services:
-    "cs1":
-        vlan: { tag: 0, tagged: false }
-        mac: "02:00:00:00:00:ff"
-        ip_ip6: false
-        ip: "10.2.0.1"
-        port: 31010
+control_service:
+    mac: "02:00:00:00:00:ff"
+    ip_ip6: false
+    ip: "10.2.0.1"
+    port: 31010
+discovery_service:
+    mac: "02:00:00:00:00:ff"
+    ip_ip6: false
+    ip: "10.2.0.1"
+    port: 31010
 border_routers:
     "br1-ff00_0_1-1":
         ext_intf:
             1:
                 ifid: 1
-                IA : "1-ff00:0:2"
+                isd_as: "1-ff00:0:2"
                 link_to: "CHILD"
                 local:
                     physical: { name: "veth1" }
@@ -28,9 +31,11 @@ border_routers:
                     ip: "10.1.1.1"
                     port: 50000
                 ip_routing: "static"
+                bfd:
+                    disable: false
             2:
                 ifid: 2
-                IA: "1-ff00:0:2"
+                isd_as: "1-ff00:0:2"
                 link_to: "CHILD"
                 local:
                     physical: { name: "veth3" }
@@ -46,6 +51,8 @@ border_routers:
                     ip: "10.1.2.1"
                     port: 50000
                 ip_routing: "static"
+                bfd:
+                    disable: false
         int_intf:
             1:
                 local:
