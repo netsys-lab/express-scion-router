@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/netsys-lab/express-scion-router/topology"
@@ -56,6 +57,7 @@ func initConfig() {
 }
 
 func runXSR(cmd *cobra.Command, args []string) {
+	var wg sync.WaitGroup
 	fmt.Println(cmd.Short)
 
 	// Load topology
@@ -80,29 +82,36 @@ func runXSR(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Run the router
-	r := &DummyRouter{}
-	if err = r.Configure(topo, key); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		if err := r.Run(ctx); err != nil {
-			fmt.Printf("Error: %v\n", err)
-			cancel()
-		}
-	}()
-
 	// Stop the router if SIGINT or SIGTERM are received
+	ctx, cancel := context.WithCancel(context.Background())
 	sig := make(chan os.Signal, 2)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	wg.Add(1)
 	go func() {
 		defer signal.Stop(sig)
+		defer wg.Done()
 		select {
 		case <-sig:
 			cancel()
 		case <-ctx.Done():
 		}
 	}()
+
+	// Run the router
+	r := &DummyRouter{}
+	if err = r.Configure(topo, key); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := r.Run(ctx); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			cancel()
+		}
+	}()
+
+	wg.Wait()
 }

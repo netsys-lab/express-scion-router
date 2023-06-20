@@ -7,11 +7,11 @@ import (
 )
 
 type Topology struct {
-	IA               string                   `yaml:"isd_as"`
-	DispatcherPort   int                      `yaml:"dispatcher_port"`
-	DiscoveryService Address                  `yaml:"discovery_service"`
-	ControlService   Address                  `yaml:"control_service"`
-	BorderRouters    map[string]*BorderRouter `yaml:"border_routers"`
+	IA                string                   `yaml:"isd_as"`
+	DispatcherPort    int                      `yaml:"dispatcher_port"`
+	DiscoveryServices map[string]*Address      `yaml:"discovery_services"`
+	ControlServices   map[string]*Address      `yaml:"control_services"`
+	BorderRouters     map[string]*BorderRouter `yaml:"border_routers"`
 }
 
 type BorderRouter struct {
