@@ -7,40 +7,41 @@ import (
 )
 
 type Topology struct {
-	IA                string                   `yaml:"isd_as"`
-	DispatcherPort    int                      `yaml:"dispatcher_port"`
-	DiscoveryServices map[string]*Address      `yaml:"discovery_services"`
-	ControlServices   map[string]*Address      `yaml:"control_services"`
-	BorderRouters     map[string]*BorderRouter `yaml:"border_routers"`
+	IA                string                     `yaml:"isd_as"`
+	DispatcherPort    int                        `yaml:"dispatcher_port"`
+	DiscoveryServices map[string]*ServiceAddress `yaml:"discovery_services"`
+	ControlServices   map[string]*ServiceAddress `yaml:"control_services"`
+	BorderRouters     map[string]*BorderRouter   `yaml:"border_routers"`
 }
 
 type BorderRouter struct {
-	ExtInterfaces map[int]*ExtInterface `yaml:"ext_intf"`
-	IntInterfaces map[int]*IntInterface `yaml:"int_intf"`
-	// Next hop table for static routes
-	NextHops []NextHop `yaml:"next_hops"`
+	Internal      Internal              `yaml:"internal"`
+	ExtInterfaces map[int]*ExtInterface `yaml:"external"`
+}
+
+type Internal struct {
+	Address      ServiceAddress        `yaml:"address"`
+	Interfaces   map[int]*IntInterface `yaml:"interfaces"`
+	IPRouting    string                `yaml:"ip_routing"` // static or kernel
+	StaticRoutes []Route               `yaml:"routes"`
+	NextHops     []NextHop             `yaml:"next_hops"`
 }
 
 // Inter-AS interface
+// Must be a point-to-point link, routing is not supported.
 type ExtInterface struct {
-	IfId      int         `yaml:"ifid"`
-	IA        string      `yaml:"isd_as"`
-	LinkTo    string      `yaml:"link_to"`
-	Local     LogicalPort `yaml:"local"`
-	Remote    Address     `yaml:"remote"`
-	IPRouting string      `yaml:"ip_routing"` // static or kernel
-	// Every extern interface has its own FIB
-	StaticRoutes []Route `yaml:"static"`
-	Bfd          BFD     `yaml:"bfd,omitempty"`
+	IfId   int         `yaml:"ifid"`
+	IA     string      `yaml:"isd_as"`
+	LinkTo string      `yaml:"link_to"`
+	Local  LogicalPort `yaml:"local"`
+	Remote RemotePort  `yaml:"remote"`
+	Bfd    BFD         `yaml:"bfd,omitempty"`
 }
 
-// Intra-AS interface
+// AS-internal interface
 type IntInterface struct {
-	Local     LogicalPort `yaml:"local"`
-	IPRouting string      `yaml:"ip_routing"` // static or kernel
-	// Static routes are shared between all internal interfaces
-	StaticRoutes []Route `yaml:"static"`
-	Bfd          BFD     `yaml:"bfd,omitempty"`
+	Address LogicalPort `yaml:"address"`
+	Bfd     BFD         `yaml:"bfd,omitempty"`
 }
 
 // A logical port of the border router. A physical port can have many logical
@@ -52,6 +53,14 @@ type LogicalPort struct {
 	IsIP6        bool         `yaml:"is_ip6"`
 	IP           string       `yaml:"ip"`
 	Port         int          `yaml:"port"`
+}
+
+type RemotePort struct {
+	VLAN  VLAN   `yaml:"vlan"`
+	MAC   string `yaml:"mac"`
+	IsIP6 bool   `yaml:"is_ip6"`
+	IP    string `yaml:"ip"`
+	Port  int    `yaml:"port"`
 }
 
 // A physical port of the border router identified by its index and or name.
@@ -71,20 +80,19 @@ type VLAN struct {
 type Route struct {
 	IsIP6   bool   `yaml:"is_ip6"`
 	Prefix  string `yaml:"prefix"`
-	NextHop int    `yaml:"next_hop"`
+	NextHop int    `yaml:"next_hop"` // Index into next hop table
 }
 
 // Next hop address for IP routing
 type NextHop struct {
-	MAC   string `yaml:"mac"`
-	IsIP6 bool   `yaml:"is_ip6"`
-	IP    string `yaml:"ip"`
+	IsIP6     bool   `yaml:"is_ip6"`
+	IP        string `yaml:"ip"`
+	MAC       string `yaml:"mac"`
+	Interface int    `yaml:"interface"` // Index of an internal interface
 }
 
 // SCION service address
-type Address struct {
-	VLAN  VLAN   `yaml:"vlan"`
-	MAC   string `yaml:"mac"`
+type ServiceAddress struct {
 	IsIP6 bool   `yaml:"is_ip6"`
 	IP    string `yaml:"ip"`
 	Port  int    `yaml:"port"`
