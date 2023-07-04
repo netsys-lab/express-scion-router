@@ -17,12 +17,12 @@ border_routers:
         internal:
             address:
                 is_ip6: false
-                ip: "10.3.0.1/32"
+                ip: "10.3.0.1"
                 port: 31002
             interfaces:
                 1:
                     address:
-                        physical: { name: "veth5" }
+                        physical: { index: 1, name: "veth5" }
                         vlan: { tag: 0, tagged: false }
                         mac: "02:00:00:00:00:05"
                         is_ip6: false
@@ -32,7 +32,7 @@ border_routers:
                         disable: false
                 2:
                     address:
-                        physical: { name: "veth7" }
+                        physical: { index: 1, name: "veth7" }
                         vlan: { tag: 0, tagged: false }
                         mac: "02:00:00:00:00:07"
                         is_ip6: false
@@ -44,25 +44,21 @@ border_routers:
             routes:
                 - prefix: "10.3.0.2/32"
                   is_ipv6: false
-                  next_hop: 1
+                  next_hop: 0
                 - prefix: "10.3.0.3/32"
                   is_ipv6: false
-                  next_hop: 2
+                  next_hop: 1
             next_hops:
-                - ip: "10.3.0.2"
-                  is_ipv6: false
+                - interface: 1
                   mac: "02:00:00:00:00:04"
-                  interface: 1
-                - ip: "10.3.0.3"
-                  is_ipv6: false
+                - interface: 2
                   mac: "02:00:00:00:00:06"
-                  interface: 2
         external:
             1:
                 isd_as: "1-ff00:0:2"
                 link_to: "CHILD"
                 local:
-                    physical: { name: "veth1" }
+                    physical: { index: 1, name: "veth1" }
                     vlan: { tag: 0, tagged: false }
                     mac: "02:00:00:00:00:01"
                     is_ip6: false
@@ -80,7 +76,7 @@ border_routers:
                 isd_as: "1-ff00:0:2"
                 link_to: "CHILD"
                 local:
-                    physical: { name: "veth3" }
+                    physical: { index: 1, name: "veth3" }
                     vlan: { tag: 0, tagged: false }
                     mac: "02:00:00:00:00:03"
                     is_ip6: false
@@ -98,12 +94,12 @@ border_routers:
         internal:
             address:
                 is_ip6: false
-                ip: "10.3.0.2/32"
+                ip: "10.3.0.2"
                 port: 31002
             interfaces:
                 1:
                     address:
-                        physical: { name: "veth4" }
+                        physical: { index: 1, name: "veth4" }
                         vlan: { tag: 0, tagged: false }
                         mac: "02:00:00:00:00:04"
                         is_ip6: false
@@ -115,18 +111,17 @@ border_routers:
             routes:
                 - prefix: "10.3.0.1/32"
                   is_ipv6: false
-                  next_hop: 1
+                  next_hop: 0
             next_hops:
-                - ip: "10.2.0.1"
-                  is_ipv6: false
+                - interface: 1
                   mac: "02:00:00:00:00:05"
-                  interface: 1
+
         external:
             3:
                 isd_as: "1-ff00:0:4"
                 link_to: "CHILD"
                 local:
-                    physical: { name: "veth9" }
+                    physical: { index: 1, name: "veth9" }
                     vlan: { tag: 0, tagged: false }
                     mac: "02:00:00:00:00:09"
                     is_ip6: false
@@ -144,7 +139,7 @@ border_routers:
                 isd_as: "1-ff00:0:5"
                 link_to: "CHILD"
                 local:
-                    physical: { name: "veth11" }
+                    physical: { index: 1, name: "veth11" }
                     vlan: { tag: 0, tagged: false }
                     mac: "02:00:00:00:00:0b"
                     is_ip6: false
@@ -162,12 +157,12 @@ border_routers:
         internal:
             address:
                 is_ip6: false
-                ip: "10.3.0.3/32"
+                ip: "10.3.0.3"
                 port: 31002
             interfaces:
                 1:
                     address:
-                        physical: { name: "veth6" }
+                        physical: { index: 1, name: "veth6" }
                         vlan: { tag: 0, tagged: false }
                         mac: "02:00:00:00:00:06"
                         is_ip6: false
@@ -179,18 +174,16 @@ border_routers:
             routes:
                 - prefix: "10.3.0.1/32"
                   is_ipv6: false
-                  next_hop: 1
+                  next_hop: 0
             next_hops:
-                - ip: "10.2.0.3"
-                  is_ipv6: false
+                - interface: 1
                   mac: "02:00:00:00:00:07"
-                  interface: 1
         external:
             5:
                 isd_as: "1-ff00:0:6"
                 link_to: "CHILD"
                 local:
-                    physical: { name: "veth13" }
+                    physical: { index: 1, name: "veth13" }
                     vlan: { tag: 0, tagged: false }
                     mac: "02:00:00:00:00:0d"
                     is_ip6: false
@@ -208,7 +201,7 @@ border_routers:
                 isd_as: "1-ff00:0:7"
                 link_to: "CHILD"
                 local:
-                    physical: { name: "veth15" }
+                    physical: { index: 1, name: "veth15" }
                     vlan: { tag: 0, tagged: false }
                     mac: "02:00:00:00:00:0f"
                     is_ip6: false

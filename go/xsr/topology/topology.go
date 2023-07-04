@@ -85,10 +85,8 @@ type Route struct {
 
 // Next hop address for IP routing
 type NextHop struct {
-	IsIP6     bool   `yaml:"is_ip6"`
-	IP        string `yaml:"ip"`
-	MAC       string `yaml:"mac"`
 	Interface int    `yaml:"interface"` // Index of an internal interface
+	MAC       string `yaml:"mac"`
 }
 
 // SCION service address

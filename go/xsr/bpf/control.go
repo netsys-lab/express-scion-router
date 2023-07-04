@@ -4,166 +4,115 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/netip"
 
+	"github.com/netsys-lab/express-scion-router/config"
 	"github.com/netsys-lab/express-scion-router/topology"
 	"github.com/scionproto/scion/pkg/addr"
 )
 
-// A physical device port
-type physicalPort struct {
-	index int
-	name  string
-}
-
-// VLAN tag
-type vlan struct {
-	tag    int
-	tagged bool
-}
-
-// A BR interface
-type logicalPort struct {
-	physical physicalPort   // Physical connection
-	vlan     vlan           // Underlay VLAN
-	mac      [6]byte        // HW address
-	underlay netip.AddrPort // SCION underlay address
-}
-
-// Addressing information for a foreign border router
-type remoteIface struct {
-	vlan     vlan           // Underlay VLAN
-	mac      [6]byte        // HW address
-	underlay netip.AddrPort // SCION underlay address
-}
-
-// Address of an AS service (e.g. control service)
-type serviceAddr struct {
-}
-
-// An internal interface is an interface to an AS-internal network.
-type internalIface struct {
-	ifindex int
-	address logicalPort
-}
-
-// Get a network interface by IP address.
-func interfaceByIp(ip netip.Addr) (*net.Interface, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, err
-	}
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return nil, err
-		}
-		for _, addr := range addrs {
-			switch a := addr.(type) {
-			case *net.IPNet:
-				if ifip, ok := netip.AddrFromSlice(a.IP); ok && ifip == ip {
-					return &iface, nil
-				}
-			default:
-				continue
-			}
-		}
-	}
-	return nil, fmt.Errorf("no interface with IP %v found", ip)
-}
-
-func parsePhysicalPort(port *topology.PhysicalPort, underlay netip.Addr) (*physicalPort, error) {
-	var index = port.Index
-
-	// Determine interface index if not given explicitly
-	if index == 0 { // TODO: Is zero a valid index?
-		var iface *net.Interface
-		var err error
-		if port.Name != "" {
-			iface, err = net.InterfaceByName(port.Name)
-		} else {
-			iface, err = interfaceByIp(underlay)
-		}
-		if err != nil {
-			return nil, err
-		}
-		index = iface.Index
-	}
-
-	return &physicalPort{
-		index: index,
-		name:  port.Name,
-	}, nil
-}
-
-func parseLogicalPort(port *topology.LogicalPort) (*logicalPort, error) {
-	// SCION underlay address
-	ip, err := netip.ParseAddr(port.IP)
-	if err != nil || (ip.Is6() != port.IsIP6) {
-		return nil,
-			fmt.Errorf("%s is not a valid IP address of the specified type", port.IP)
-	}
-
-	// Physical port
-	phy, err := parsePhysicalPort(&port.PhysicalPort, ip)
-	if err != nil {
-		return nil, err
-	}
-
-	// HW address
-	hwAddr, err := net.ParseMAC(port.MAC)
-	if err != nil || len(hwAddr) != 6 {
-		return nil,
-			fmt.Errorf("%s is not a valid Ethernet MAC", port.MAC)
-	}
-
-	return &logicalPort{
-		physical: *phy,
-		vlan:     vlan{tag: port.VLAN.Tag, tagged: port.VLAN.Tagged},
-		mac:      ([6]byte)(hwAddr[:6]),
-		underlay: netip.AddrPortFrom(ip, uint16(port.Port)),
-	}, nil
-}
-
-// TODO: The user space router and the eBPF router can share most of this code
 type BpfRouter struct {
-	name        string
-	localIA     addr.IA
-	internalIfs []internalIface
-	services    map[uint32][]serviceAddr // Mapping from SVC address to AS services
-	hfKeys      [8][16]byte              // Keys for SCION hop field verification
-	running     bool
+	// Local address
+	name    string
+	localIA addr.IA
+
+	// Interfaces
+	externalIfs map[uint32]config.ExternalIface
+	siblingIfs  map[uint32]netip.AddrPort
+	internalIfs map[int]config.InternalIface
+
+	// Routing
+	// Mapping from SVC address to AS services
+	services map[uint32][]netip.AddrPort
+	fib      config.Fib
+
+	// Key for SCION hop field verification
+	hfKey [16]byte
 }
 
-func (r *BpfRouter) Configure(topo *topology.Topology, key []byte) error {
+func NewBpfRouter(name string) *BpfRouter {
+	return &BpfRouter{
+		name: name,
+	}
+}
+
+func (r *BpfRouter) Configure(topo *topology.Topology) error {
 	var err error
 
-	log.Printf("Configuring router %s\n", r.name)
+	log.Printf("### Configuring Router %s ###\n", r.name)
 	br, ok := topo.BorderRouters[r.name]
 	if !ok {
 		return fmt.Errorf("no configuration for BR %s in topology", r.name)
 	}
 
-	// Set IA
+	// Local IA
 	if r.localIA, err = addr.ParseIA(topo.IA); err != nil {
 		return err
 	}
 	log.Printf("Local IA: %s\n", r.localIA)
 
+	// Services
+	r.services = make(map[uint32][]netip.AddrPort, 2)
+	r.services[uint32(addr.SvcCS)], err = config.ParseCSes(topo.ControlServices)
+	log.Print("Control services:\n")
+	for _, svc := range r.services[uint32(addr.SvcCS)] {
+		log.Printf("  - %v\n", svc)
+	}
+	if err != nil {
+		return err
+	}
+	r.services[uint32(addr.SvcDS)], err = config.ParseDSes(topo.DiscoveryServices)
+	log.Print("Discovery services:\n")
+	for _, svc := range r.services[uint32(addr.SvcDS)] {
+		log.Printf("  - %v\n", svc)
+	}
+	if err != nil {
+		return err
+	}
+
+	// External interfaces
+	r.externalIfs, err = config.ParseExtIFs(br.ExtInterfaces)
+	log.Print("External interfaces:\n")
+	for ifid, iface := range r.externalIfs {
+		log.Printf("%3d: %v\n", ifid, iface)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Sibling interfaces
+	r.siblingIfs, err = config.ParseSibIFs(topo.BorderRouters, r.name)
+	log.Print("Sibling interfaces:\n")
+	for ifid, iface := range r.siblingIfs {
+		log.Printf("%3d: %v\n", ifid, iface)
+	}
+	if err != nil {
+		return err
+	}
+
 	// Internal interfaces
-	for _, iface := range br.Internal.Interfaces {
-		adr, err := parseLogicalPort(&iface.Address)
-		if err != nil {
-			return err
-		}
-		r.internalIfs = append(r.internalIfs, internalIface{
-			ifindex: 0,
-			address: *adr,
-		})
+	r.internalIfs, err = config.ParseIntIFs(br.Internal.Interfaces)
+	log.Print("Internal interfaces:\n")
+	for index, iface := range r.internalIfs {
+		log.Printf("%3d: %v\n", index, iface)
+	}
+	if err != nil {
+		return err
+	}
+
+	// Static internal routes
+	r.fib, err = config.ParseStaticFIB(&br.Internal)
+	log.Printf("FIB:\n%v", r.fib)
+	if err != nil {
+		return err
 	}
 
 	return nil
+}
+
+func (r *BpfRouter) SetAsKey(key [16]byte) {
+	// TODO: Key derivation
+	r.hfKey = key
 }
 
 func (r *BpfRouter) Run(ctx context.Context) error {

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
+	"github.com/netsys-lab/express-scion-router/bpf"
 	"github.com/netsys-lab/express-scion-router/topology"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -58,7 +60,7 @@ func initConfig() {
 
 func runXSR(cmd *cobra.Command, args []string) {
 	var wg sync.WaitGroup
-	fmt.Println(cmd.Short)
+	log.Printf("%s startup\n", cmd.Short)
 
 	// Load topology
 	if viper.GetString("topo") == "" {
@@ -98,11 +100,14 @@ func runXSR(cmd *cobra.Command, args []string) {
 	}()
 
 	// Run the router
-	r := &DummyRouter{}
-	if err = r.Configure(topo, key); err != nil {
+	r := bpf.NewBpfRouter("br1-ff00_0_1-1")
+	if err = r.Configure(topo); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
+	r.SetAsKey([16]byte(key))
+
+	os.Exit(1)
 
 	wg.Add(1)
 	go func() {
