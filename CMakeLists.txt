@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(express-scion-router)
 
+set(GO go CACHE STRING "Go compiler")
 set(BPFTOOL bpftool CACHE STRING "bpftool")
+
 set(ENABLE_DEBUG_PRINT ON CACHE BOOL "Enable debug messages from dataplane (slow)")
 set(ENABLE_IPV4 ON CACHE BOOL "Enable IPv4 support")
 set(ENABLE_IPV6 ON CACHE BOOL "Enable IPv6 support")
@@ -19,3 +21,4 @@ endif()
 add_compile_options(-Wall -Werror -march=native)
 
 add_subdirectory(src)
+add_subdirectory(go/xsr)

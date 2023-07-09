@@ -125,7 +125,7 @@ func ParseCSes(topo_cses map[string]*topology.ServiceAddress) ([]netip.AddrPort,
 	for name, addr := range topo_cses {
 		service, err := parseServiceAddr(addr)
 		if err != nil {
-			return cses, fmt.Errorf("control service %s: %v", name, err)
+			return cses, fmt.Errorf("control service %s: %w", name, err)
 		}
 		cses = append(cses, service)
 	}
@@ -138,7 +138,7 @@ func ParseDSes(topo_dses map[string]*topology.ServiceAddress) ([]netip.AddrPort,
 	for name, addr := range topo_dses {
 		service, err := parseServiceAddr(addr)
 		if err != nil {
-			return dses, fmt.Errorf("discovery service %s: %v", name, err)
+			return dses, fmt.Errorf("discovery service %s: %w", name, err)
 		}
 		dses = append(dses, service)
 	}

@@ -14,13 +14,21 @@ add_library(xdp_kernel_objs OBJECT # compile without linking
 target_compile_options(xdp_kernel_objs PRIVATE -target bpf -O2 -g)
 target_include_directories(xdp_kernel_objs PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-add_custom_target(xdp_kernel ALL DEPENDS xdp_kernel.o) # custom target for linking
+# custom target for linking
+set(XDP_KERNEL_OBJ "${CMAKE_CURRENT_BINARY_DIR}/xdp_kernel.o")
+set(XDP_KERNEL_EMBED "${CMAKE_SOURCE_DIR}/go/xsr/bpf/xdp_kernel.o")
+add_custom_target(xdp_kernel ALL DEPENDS ${XDP_KERNEL_OBJ} ${XDP_KERNEL_EMBED})
 add_dependencies(xdp_kernel xdp_kernel_objs)
 add_custom_command(
-    OUTPUT xdp_kernel.o
+    OUTPUT ${XDP_KERNEL_OBJ}
     COMMAND ${BPFTOOL} gen object xdp_kernel.o "$<TARGET_OBJECTS:xdp_kernel_objs>"
     COMMAND_EXPAND_LISTS
     DEPENDS "$<TARGET_OBJECTS:xdp_kernel_objs>"
+)
+add_custom_command( # copy xdp object into Go package for embedding
+    OUTPUT ${XDP_KERNEL_EMBED}
+    DEPENDS ${XDP_KERNEL_OBJ}
+    COMMAND ${CMAKE_COMMAND} -E copy "${XDP_KERNEL_OBJ}" "${XDP_KERNEL_EMBED}"
 )
 
 
