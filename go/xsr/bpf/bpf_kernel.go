@@ -17,5 +17,5 @@ func load() (*ebpf.CollectionSpec, error) {
 	return spec, err
 }
 
-//go:embed xdp_kernel.o
+//go:embed xsr_ebpf.o
 var _EmbdeddedXDP []byte

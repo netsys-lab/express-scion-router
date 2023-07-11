@@ -118,7 +118,7 @@ void aes_cmac_no_loops(
     const struct aes_block subkeys[2],
     struct aes_cmac *mac);
 
-#else // !defined __bpf__
+#endif // !defined __bpf__
 
 /// \brief Calculate the AES-CMAC of a 16 byte block according to RFC4493.
 /// \param[in] data Input data, must be exactly 16 bytes
@@ -140,5 +140,4 @@ inline void aes_cmac_16bytes(
     aes_cypher((struct aes_block*)mac, key_schedule, (struct aes_block*)mac);
 }
 
-#endif // !defined __bpf__
 #endif // AES_H_GUARD

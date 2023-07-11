@@ -27,7 +27,7 @@
 #include <linux/bpf.h>
 
 
-#ifdef XDP_DEBUG_PRINT
+#if defined XDP_DEBUG_PRINT && defined __bpf__
 /// \brief Ring buffer for debug log.
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);

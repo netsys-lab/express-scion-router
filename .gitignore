@@ -1,3 +1,4 @@
 .vscode/
 build/
-go/xsr/bpf/*.o
+*.a
+*.o

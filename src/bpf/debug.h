@@ -33,11 +33,15 @@
     }                                                       \
 })
 
-#ifdef XDP_DEBUG_PRINT
-#define printf(...) bpf_ringbuf_printf(&debug_ringbuf, ##__VA_ARGS__)
+
+#if (defined XDP_DEBUG_PRINT && defined __bpf__)
+    #define printf(...) /* TODO */
+#elif (defined XDP_DEBUG_PRINT)
+    #define printf(...) bpf_ringbuf_printf(&debug_ringbuf, ##__VA_ARGS__)
 #else
-#define printf(...)
+    #define printf(...)
 #endif
+
 
 #ifdef XDP_DEBUG_PRINT
 // Ignore warnings because of call to static BPF helpers from inline functions
